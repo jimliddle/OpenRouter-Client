@@ -4,6 +4,9 @@ A fully-featured, beautifully designed modern chat client for the OpenRouter API
 
 No build steps. No frameworks. No external CDNs. Just download, open in your browser, and start chatting with hundreds of LLMs.
 
+<img width="924" height="512" alt="OpenRouter Chat Client Screenshot" src="https://github.com/user-attachments/assets/6ad61d3a-0a4d-4e0b-b65b-2c55654c949f" />
+
+
 ## 🚀 Features
 
 Zero Dependencies: Built with pure Vanilla HTML, CSS, and JavaScript. Everything, including SVG icons, is embedded.
