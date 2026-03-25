@@ -1,4 +1,4 @@
-# OpenRouter Modern Chat (Single-File PWA)
+# OpenRouter Modern AI Chat Client (Single-File PWA)
 
 A fully-featured, beautifully designed modern chat client for the OpenRouter API, built entirely in a single, zero-dependency HTML file.
 
