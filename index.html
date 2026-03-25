@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#101010">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>OpenRouter Modern Chat</title>
+    <!-- Dynamic Manifest Link Placeholder -->
+    <link id="manifestLink" rel="manifest" href="">
+    <style>
+        :root {
+            --bg-main: #101010;
+            --bg-panel: #1A1A1A;
+            --bg-hover: #222222;
+            --bg-input: #202020;
+            --border: #2A2A2A;
+            --border-focus: #444444;
+            --text-main: #EAEAEA;
+            --text-muted: #888888;
+            --accent-blue: #0A84FF;
+            --accent-blue-hover: #0070E0;
+            --accent-red: #FF453A;
+            --accent-green: #30D158;
+            --user-msg: #0A84FF;
+            --ai-msg: #2D2D2D;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body, html {
+            height: 100%;
+            width: 100%;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        /* Layout */
+        #app {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 280px;
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 30;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .new-thread-btn {
+            margin: 12px;
+            padding: 10px;
+            background-color: var(--ai-msg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .new-thread-btn:hover {
+            background-color: var(--bg-hover);
+        }
+
+        /* Model Selector in Sidebar */
+        .sidebar-model-container {
+            padding: 0 12px 12px 12px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 8px;
+        }
+
+        .select-wrapper {
+            position: relative;
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .sidebar-model-select {
+            width: 100%;
+            background-color: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 30px 8px 12px;
+            font-size: 13px;
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            height: 34px;
+        }
+
+        .sidebar-model-select:focus {
+            border-color: var(--border-focus);
+        }
+
+        .select-wrapper::after {
+            content: '▼';
+            font-size: 10px;
+            color: var(--text-muted);
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .refresh-models-btn {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: 8px;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .refresh-models-btn:hover {
+            color: var(--text-main);
+            border-color: var(--border-focus);
+            background-color: var(--bg-hover);
+        }
+
+        .refresh-models-btn.spin svg {
+            animation: spin 1s linear infinite;
+        }
+
+        #threadList {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 0 12px;
+        }
+
+        .thread-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .thread-item:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .thread-item.active {
+            background-color: var(--bg-hover);
+            border-color: var(--border-focus);
+        }
+
+        .thread-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-grow: 1;
+            margin-right: 8px;
+        }
+
+        .delete-thread-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            display: none;
+            border-radius: 4px;
+        }
+
+        .thread-item:hover .delete-thread-btn {
+            display: block;
+        }
+
+        .delete-thread-btn:hover {
+            color: var(--accent-red);
+            background-color: rgba(255, 69, 58, 0.1);
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .sidebar-action-btn {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .sidebar-action-btn:hover {
+            color: var(--text-main);
+            background-color: var(--bg-hover);
+        }
+        
+        #installBtn {
+            color: var(--accent-green);
+            background-color: rgba(48, 209, 88, 0.05);
+            display: none; /* Hidden by default until PWA prompts */
+        }
+        #installBtn:hover {
+            background-color: rgba(48, 209, 88, 0.15);
+        }
+
+        /* Overlay for mobile sidebar */
+        #sidebarOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 20;
+        }
+
+        /* Main Chat Area */
+        #mainChat {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .chat-header {
+            height: 56px;
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+        }
+
+        .chat-title {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-left: 12px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            display: none;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            background: var(--bg-input);
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-red);
+        }
+
+        .status-dot.active {
+            background-color: var(--accent-green);
+        }
+
+        #messageHistory {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .empty-state {
+            margin: auto;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .message-wrapper {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .message-wrapper.user {
+            align-items: flex-end;
+        }
+
+        .message-wrapper.assistant, .message-wrapper.system {
+            align-items: flex-start;
+        }
+
+        /* AI Model Label */
+        .message-model-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            margin-left: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .message-model-label svg {
+            opacity: 0.7;
+        }
+
+        .message-content {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.5;
+            position: relative;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .user .message-content {
+            background-color: var(--user-msg);
+            color: #ffffff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .assistant .message-content {
+            background-color: var(--ai-msg);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .system .message-content {
+            background-color: rgba(255, 69, 58, 0.1);
+            color: #ffb3b0;
+            border: 1px solid rgba(255, 69, 58, 0.3);
+            border-bottom-left-radius: 4px;
+        }
+
+        /* Message Actions */
+        .message-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .message-wrapper:hover .message-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .action-btn:hover {
+            color: var(--text-main);
+            background-color: var(--bg-hover);
+        }
+
+        .action-btn.delete:hover {
+            color: var(--accent-red);
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 16px;
+            background-color: var(--bg-panel);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 8px;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 4px;
+            max-width: 800px;
+            margin: 0 auto;
+            transition: border-color 0.2s;
+        }
+
+        .input-container:focus-within {
+            border-color: var(--border-focus);
+        }
+
+        #userInput {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            padding: 12px;
+            font-size: 15px;
+            resize: none;
+            min-height: 44px;
+            max-height: 150px;
+            outline: none;
+        }
+
+        #sendBtn {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            margin-top: auto;
+            margin-bottom: 2px;
+            margin-right: 2px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        #sendBtn:hover:not(:disabled) {
+            background-color: var(--accent-blue-hover);
+        }
+
+        #sendBtn:disabled {
+            background-color: var(--bg-hover);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .input-hint {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Settings Modal */
+        #settingsModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-content {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none; border: none; color: var(--text-muted); cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        .btn-danger {
+            width: 100%;
+            padding: 12px;
+            background-color: transparent;
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-top: 16px;
+        }
+
+        .btn-danger:hover {
+            background-color: var(--accent-red);
+            color: white;
+        }
+
+        /* Loading Indicator */
+        .typing-indicator {
+            display: none;
+            padding: 12px 16px;
+            background-color: var(--ai-msg);
+            border-radius: 16px;
+            border-bottom-left-radius: 4px;
+            align-self: flex-start;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 14px;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .typing-indicator svg {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-focus); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed;
+                top: 0; bottom: 0; left: 0;
+                transform: translateX(-100%);
+            }
+            #sidebar.open {
+                transform: translateX(0);
+            }
+            .menu-btn {
+                display: block;
+            }
+            .message-actions {
+                opacity: 1;
+            }
+            .delete-thread-btn {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <span>Chats</span>
+            <button class="menu-btn" onclick="toggleSidebar()" style="display: block; md:display: none;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        
+        <button class="new-thread-btn" onclick="createNewThread()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            New Thread
+        </button>
+
+        <!-- Dynamic Model Selector in Sidebar -->
+        <div class="sidebar-model-container">
+            <div class="select-wrapper">
+                <select id="sidebarModelSelector" class="sidebar-model-select" onchange="changeModel()">
+                    <option value="">Loading models...</option>
+                </select>
+            </div>
+            <button id="refreshModelsBtn" class="refresh-models-btn" onclick="fetchModels(true)" title="Refresh Models">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 1 0 2.13-5.83L21 8"></path></svg>
+            </button>
+        </div>
+
+        <div id="threadList">
+            <!-- Threads injected here -->
+        </div>
+
+        <div class="sidebar-footer">
+            <button class="sidebar-action-btn" id="installBtn" onclick="installPWA()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Install App
+            </button>
+            <button class="sidebar-action-btn" onclick="openSettings()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                Settings & API
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div id="mainChat">
+        <div class="chat-header">
+            <div class="header-left">
+                <button class="menu-btn" onclick="toggleSidebar()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+                <span class="chat-title" id="currentChatTitle">New Chat</span>
+            </div>
+            <div class="status-badge">
+                <div class="status-dot" id="apiStatusDot"></div>
+                <span id="apiStatusText">No Key</span>
+            </div>
+        </div>
+
+        <div id="messageHistory">
+            <!-- Messages injected here -->
+            <div class="empty-state" id="emptyState">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="opacity: 0.5; margin-bottom: 16px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                <p>Start a new conversation</p>
+            </div>
+            
+            <div class="typing-indicator" id="typingIndicator">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                Thinking...
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-container">
+                <textarea id="userInput" placeholder="Message OpenRouter..." rows="1"></textarea>
+                <button id="sendBtn" onclick="sendMessage()" disabled>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+            <div class="input-hint">Press Enter to send, Shift+Enter for new line</div>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settingsModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span>Settings</span>
+            <button class="close-btn" onclick="closeSettings()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>OpenRouter API Key</label>
+                <input type="password" id="apiKeyInput" class="form-control" placeholder="sk-or-v1-...">
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Stored securely in browser IndexedDB.</div>
+            </div>
+            
+            <button class="btn-primary" onclick="saveSettings()">Save API Key</button>
+            <div id="saveStatus" style="color: var(--accent-green); font-size: 12px; text-align: center; margin-top: 8px; height: 16px;"></div>
+
+            <hr style="border: none; border-top: 1px solid var(--border); margin: 24px 0 16px 0;">
+            
+            <div style="color: var(--accent-red); font-size: 14px; font-weight: 500; margin-bottom: 8px;">Danger Zone</div>
+            <div style="font-size: 12px; color: var(--text-muted);">Deletes all threads, messages, and your API key from this device. Cannot be undone.</div>
+            <button class="btn-danger" onclick="wipeAllData()">Wipe All Data</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // DYNAMIC SINGLE-FILE PWA INJECTION 
+    // ==========================================
+    (function setupSingleFilePWA() {
+        try {
+            // 1. Generate an SVG Icon for the App
+            const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" fill="#101010"/><rect x="64" y="64" width="384" height="384" rx="96" fill="#1A1A1A" stroke="#2A2A2A" stroke-width="16"/><path d="M160 352 L256 256 L352 352 M160 160 L256 256 L352 160" stroke="#0A84FF" stroke-width="48" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="256" cy="256" r="32" fill="#30D158"/></svg>`;
+            const iconDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgIcon)));
+
+            // 2. Dynamically Generate manifest.json Blob
+            const manifest = {
+                name: "OpenRouter Modern",
+                short_name: "OR Chat",
+                start_url: window.location.href.split('?')[0],
+                display: "standalone",
+                background_color: "#101010",
+                theme_color: "#1A1A1A",
+                icons: [{ src: iconDataUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/manifest+json'});
+            document.getElementById('manifestLink').href = URL.createObjectURL(manifestBlob);
+
+            // 3. Dynamically Generate Service Worker Blob
+            const swCode = `
+                self.addEventListener('install', (e) => self.skipWaiting());
+                self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
+                self.addEventListener('fetch', (e) => {
+                    e.respondWith(fetch(e.request).catch(() => new Response('Offline Mode - Check Connection.')));
+                });
+            `;
+            const swBlob = new Blob([swCode], {type: 'application/javascript'});
+            const swUrl = URL.createObjectURL(swBlob);
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register(swUrl).catch(err => console.log('SW Registration skipped (Context restricted)'));
+            }
+        } catch(e) {
+            console.log("PWA setup skipped:", e);
+        }
+    })();
+
+    // --- PWA INSTALL PROMPT HANDLING ---
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('installBtn').style.display = 'flex';
+    });
+
+    async function installPWA() {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            document.getElementById('installBtn').style.display = 'none';
+        }
+        deferredPrompt = null;
+    }
+
+
+    // ==========================================
+    // CORE APPLICATION LOGIC
+    // ==========================================
+
+    // --- UTILITIES ---
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    // --- INDEXEDDB WRAPPER ---
+    const DB_NAME = 'OpenRouterVanillaDB';
+    const DB_VERSION = 1;
+    let dbInstance = null;
+
+    const dbUtils = {
+        init: function() {
+            return new Promise((resolve, reject) => {
+                if (dbInstance) return resolve(dbInstance);
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = (e) => reject(e.target.error);
+                request.onsuccess = (e) => {
+                    dbInstance = e.target.result;
+                    resolve(dbInstance);
+                };
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('settings')) {
+                        db.createObjectStore('settings', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('threads')) {
+                        const threadStore = db.createObjectStore('threads', { keyPath: 'id' });
+                        threadStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+                    }
+                    if (!db.objectStoreNames.contains('messages')) {
+                        const msgStore = db.createObjectStore('messages', { keyPath: 'id' });
+                        msgStore.createIndex('threadId', 'threadId', { unique: false });
+                        msgStore.createIndex('createdAt', 'createdAt', { unique: false });
+                    }
+                };
+            });
+        },
+        get: async function(storeName, id) {
+            const db = await this.init();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readonly');
+                const req = tx.objectStore(storeName).get(id);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        },
+        put: async function(storeName, item) {
+            const db = await this.init();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const req = tx.objectStore(storeName).put(item);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        },
+        getAll: async function(storeName) {
+            const db = await this.init();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readonly');
+                const req = tx.objectStore(storeName).getAll();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        },
+        getByIndex: async function(storeName, indexName, value) {
+            const db = await this.init();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readonly');
+                const index = tx.objectStore(storeName).index(indexName);
+                const req = index.getAll(value);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        },
+        delete: async function(storeName, id) {
+            const db = await this.init();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const req = tx.objectStore(storeName).delete(id);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        },
+        clearAll: async function() {
+            const db = await this.init();
+            const stores = ['settings', 'threads', 'messages'];
+            for (let store of stores) {
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction(store, 'readwrite');
+                    const req = tx.objectStore(store).clear();
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => reject(req.error);
+                });
+            }
+        }
+    };
+
+    // --- APPLICATION STATE ---
+    let state = {
+        apiKey: '',
+        selectedModel: '',
+        threads: [],
+        currentThreadId: null,
+        messages: [],
+        isLoading: false
+    };
+
+    // --- DOM ELEMENTS ---
+    const DOM = {
+        sidebar: document.getElementById('sidebar'),
+        sidebarOverlay: document.getElementById('sidebarOverlay'),
+        threadList: document.getElementById('threadList'),
+        currentChatTitle: document.getElementById('currentChatTitle'),
+        apiStatusDot: document.getElementById('apiStatusDot'),
+        apiStatusText: document.getElementById('apiStatusText'),
+        messageHistory: document.getElementById('messageHistory'),
+        emptyState: document.getElementById('emptyState'),
+        typingIndicator: document.getElementById('typingIndicator'),
+        userInput: document.getElementById('userInput'),
+        sendBtn: document.getElementById('sendBtn'),
+        settingsModal: document.getElementById('settingsModal'),
+        apiKeyInput: document.getElementById('apiKeyInput'),
+        sidebarModelSelector: document.getElementById('sidebarModelSelector'),
+        saveStatus: document.getElementById('saveStatus')
+    };
+
+    // --- INITIALIZATION ---
+    async function initApp() {
+        try {
+            await dbUtils.init();
+
+            // Load Settings
+            const keyRecord = await dbUtils.get('settings', 'apiKey');
+            if (keyRecord) state.apiKey = keyRecord.value;
+            updateApiStatusUI();
+
+            const modelRecord = await dbUtils.get('settings', 'selectedModel');
+            if (modelRecord) state.selectedModel = modelRecord.value;
+
+            // Load Threads
+            let threads = await dbUtils.getAll('threads');
+            threads.sort((a, b) => b.updatedAt - a.updatedAt);
+            state.threads = threads;
+
+            if (state.threads.length > 0) {
+                await selectThread(state.threads[0].id);
+            } else {
+                await createNewThread();
+            }
+
+            // Fetch Models from API asynchronously
+            fetchModels();
+
+            // Setup input auto-resize
+            DOM.userInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+                updateSendButtonState();
+            });
+
+            DOM.userInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (!state.isLoading && this.value.trim() !== '') {
+                        sendMessage();
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error("Initialization failed:", error);
+            alert("Failed to initialize database. Please ensure you are not in private browsing mode.");
+        }
+    }
+
+    // --- UI RENDERING & LOGIC ---
+
+    function toggleSidebar() {
+        DOM.sidebar.classList.toggle('open');
+        DOM.sidebarOverlay.style.display = DOM.sidebar.classList.contains('open') ? 'block' : 'none';
+    }
+
+    function updateApiStatusUI() {
+        if (state.apiKey) {
+            DOM.apiStatusDot.classList.add('active');
+            DOM.apiStatusText.textContent = 'API Active';
+        } else {
+            DOM.apiStatusDot.classList.remove('active');
+            DOM.apiStatusText.textContent = 'No Key';
+        }
+    }
+
+    function updateSendButtonState() {
+        DOM.sendBtn.disabled = state.isLoading || DOM.userInput.value.trim() === '';
+    }
+
+    function scrollToBottom() {
+        setTimeout(() => {
+            DOM.messageHistory.scrollTop = DOM.messageHistory.scrollHeight;
+        }, 50);
+    }
+
+    // --- MODELS LOGIC ---
+    
+    async function fetchModels(forceRefresh = false) {
+        const refreshBtn = document.getElementById('refreshModelsBtn');
+        try {
+            if (forceRefresh && refreshBtn) refreshBtn.classList.add('spin');
+            DOM.sidebarModelSelector.innerHTML = '<option value="">Loading models...</option>';
+            
+            const headers = {};
+            // If the user has an API key, include it to fetch their specific available models
+            if (state.apiKey) {
+                headers['Authorization'] = `Bearer ${state.apiKey}`;
+            }
+
+            const response = await fetch('https://openrouter.ai/api/v1/models', { headers });
+            
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            
+            const data = await response.json();
+            let modelsList = data.data;
+            modelsList.sort((a, b) => a.name.localeCompare(b.name));
+
+            DOM.sidebarModelSelector.innerHTML = ''; 
+
+            modelsList.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                DOM.sidebarModelSelector.appendChild(option);
+            });
+
+            // Set the dropdown to current state model
+            if (state.selectedModel && modelsList.some(m => m.id === state.selectedModel)) {
+                DOM.sidebarModelSelector.value = state.selectedModel;
+            } else if (modelsList.length > 0) {
+                DOM.sidebarModelSelector.value = modelsList[0].id;
+                state.selectedModel = modelsList[0].id;
+                dbUtils.put('settings', { id: 'selectedModel', value: modelsList[0].id });
+            }
+
+        } catch (error) {
+            console.error('Error fetching models:', error);
+            DOM.sidebarModelSelector.innerHTML = '<option value="">Failed to fetch models</option>';
+        } finally {
+            if (forceRefresh && refreshBtn) refreshBtn.classList.remove('spin');
+        }
+    }
+
+    async function changeModel() {
+        const newModel = DOM.sidebarModelSelector.value;
+        if (!newModel) return;
+
+        state.selectedModel = newModel;
+        
+        // Save globally so new threads use this model
+        await dbUtils.put('settings', { id: 'selectedModel', value: newModel });
+
+        // Save to active thread
+        if (state.currentThreadId) {
+            const thread = state.threads.find(t => t.id === state.currentThreadId);
+            if (thread) {
+                thread.model = newModel;
+                thread.updatedAt = Date.now();
+                await dbUtils.put('threads', thread);
+                // Re-sort to bring updated thread to top
+                state.threads.sort((a, b) => b.updatedAt - a.updatedAt);
+                renderThreadsList();
+            }
+        }
+    }
+
+
+    // --- THREADS ---
+
+    async function createNewThread() {
+        const newThread = {
+            id: generateUUID(),
+            title: 'New Chat',
+            model: state.selectedModel, 
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
+        await dbUtils.put('threads', newThread);
+        state.threads.unshift(newThread); 
+        await selectThread(newThread.id);
+        if (window.innerWidth <= 768 && DOM.sidebar.classList.contains('open')) toggleSidebar();
+    }
+
+    async function selectThread(threadId) {
+        state.currentThreadId = threadId;
+        
+        const thread = state.threads.find(t => t.id === threadId);
+        
+        DOM.currentChatTitle.textContent = thread ? thread.title : 'Chat';
+
+        if (thread && thread.model) {
+            state.selectedModel = thread.model;
+            if(DOM.sidebarModelSelector.options.length > 1) { 
+                DOM.sidebarModelSelector.value = thread.model;
+            }
+        }
+
+        renderThreadsList();
+
+        let messages = await dbUtils.getByIndex('messages', 'threadId', threadId);
+        messages.sort((a, b) => a.createdAt - b.createdAt);
+        state.messages = messages;
+        
+        renderMessagesList();
+        if (window.innerWidth <= 768 && DOM.sidebar.classList.contains('open')) toggleSidebar();
+    }
+
+    async function deleteThread(threadId, event) {
+        event.stopPropagation();
+        if (!confirm('Delete this thread and all its messages?')) return;
+
+        await dbUtils.delete('threads', threadId);
+        const threadMessages = await dbUtils.getByIndex('messages', 'threadId', threadId);
+        for (let msg of threadMessages) {
+            await dbUtils.delete('messages', msg.id);
+        }
+
+        state.threads = state.threads.filter(t => t.id !== threadId);
+        
+        if (state.currentThreadId === threadId) {
+            if (state.threads.length > 0) {
+                await selectThread(state.threads[0].id);
+            } else {
+                await createNewThread();
+            }
+        } else {
+            renderThreadsList();
+        }
+    }
+
+    function renderThreadsList() {
+        DOM.threadList.innerHTML = '';
+        state.threads.forEach(thread => {
+            const div = document.createElement('div');
+            div.className = `thread-item ${thread.id === state.currentThreadId ? 'active' : ''}`;
+            div.onclick = () => selectThread(thread.id);
+            
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'thread-title';
+            titleSpan.textContent = thread.title;
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'delete-thread-btn';
+            delBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+            delBtn.title = "Delete Thread";
+            delBtn.onclick = (e) => deleteThread(thread.id, e);
+
+            div.appendChild(titleSpan);
+            div.appendChild(delBtn);
+            DOM.threadList.appendChild(div);
+        });
+    }
+
+    // --- MESSAGES ---
+
+    function renderMessagesList() {
+        const children = Array.from(DOM.messageHistory.children);
+        children.forEach(child => {
+            if (child.id !== 'emptyState' && child.id !== 'typingIndicator') {
+                DOM.messageHistory.removeChild(child);
+            }
+        });
+
+        if (state.messages.length === 0) {
+            DOM.emptyState.style.display = 'block';
+        } else {
+            DOM.emptyState.style.display = 'none';
+            state.messages.forEach(msg => {
+                appendMessageToDOM(msg);
+            });
+        }
+        
+        DOM.messageHistory.appendChild(DOM.typingIndicator);
+        scrollToBottom();
+    }
+
+    function appendMessageToDOM(msg) {
+        DOM.emptyState.style.display = 'none';
+        
+        const wrapper = document.createElement('div');
+        wrapper.className = `message-wrapper ${msg.role}`;
+        wrapper.id = `msg-${msg.id}`;
+
+        if (msg.role === 'assistant' && msg.model) {
+            const modelLabel = document.createElement('div');
+            modelLabel.className = 'message-model-label';
+            modelLabel.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg> ${msg.model}`;
+            wrapper.appendChild(modelLabel);
+        }
+
+        const content = document.createElement('div');
+        content.className = 'message-content';
+        content.textContent = msg.content; 
+
+        const actions = document.createElement('div');
+        actions.className = 'message-actions';
+        
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'action-btn';
+        copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy';
+        copyBtn.onclick = () => copyMessage(msg.content);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'action-btn delete';
+        deleteBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete';
+        deleteBtn.onclick = () => deleteMessage(msg.id);
+
+        if (msg.role === 'user') {
+            actions.appendChild(copyBtn);
+            actions.appendChild(deleteBtn);
+        } else {
+            actions.appendChild(deleteBtn);
+            actions.appendChild(copyBtn);
+        }
+
+        wrapper.appendChild(content);
+        wrapper.appendChild(actions);
+        
+        DOM.messageHistory.insertBefore(wrapper, DOM.typingIndicator);
+        scrollToBottom();
+    }
+
+    async function deleteMessage(msgId) {
+        if (!confirm('Delete this message?')) return;
+        
+        await dbUtils.delete('messages', msgId);
+        state.messages = state.messages.filter(m => m.id !== msgId);
+        
+        const msgElement = document.getElementById(`msg-${msgId}`);
+        if (msgElement) {
+            msgElement.remove();
+        }
+        
+        if (state.messages.length === 0) {
+            DOM.emptyState.style.display = 'block';
+        }
+    }
+
+    function copyMessage(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+        } catch (err) {
+            console.error('Copy failed', err);
+        }
+        textArea.remove();
+    }
+
+    async function sendMessage() {
+        const text = DOM.userInput.value.trim();
+        if (!text) return;
+
+        if (!state.apiKey) {
+            alert("Please set your OpenRouter API Key in Settings first.");
+            openSettings();
+            return;
+        }
+
+        const model = state.selectedModel || DOM.sidebarModelSelector.value;
+        if (!model) {
+            alert("Please wait for models to load or select a valid model.");
+            return;
+        }
+
+        DOM.userInput.value = '';
+        DOM.userInput.style.height = 'auto';
+        state.isLoading = true;
+        updateSendButtonState();
+        DOM.typingIndicator.style.display = 'flex';
+
+        const userMsg = {
+            id: generateUUID(),
+            threadId: state.currentThreadId,
+            role: 'user',
+            content: text,
+            createdAt: Date.now()
+        };
+        
+        await dbUtils.put('messages', userMsg);
+        state.messages.push(userMsg);
+        appendMessageToDOM(userMsg);
+
+        const currentThread = state.threads.find(t => t.id === state.currentThreadId);
+        if (currentThread) {
+            currentThread.updatedAt = Date.now();
+            if (currentThread.title === 'New Chat') {
+                currentThread.title = text.length > 25 ? text.substring(0, 25) + '...' : text;
+            }
+            await dbUtils.put('threads', currentThread);
+            state.threads.sort((a, b) => b.updatedAt - a.updatedAt);
+            renderThreadsList();
+        }
+
+        const apiMessages = state.messages.map(m => ({
+            role: m.role === 'system' ? 'assistant' : m.role,
+            content: m.content
+        }));
+
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${state.apiKey}`,
+                    'HTTP-Referer': window.location.origin,
+                    'X-Title': 'Vanilla HTML Client'
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: apiMessages
+                })
+            });
+
+            if (!response.ok) {
+                let errText = await response.text();
+                try { 
+                    errText = JSON.parse(errText).error.message; 
+                } catch(e) {}
+                throw new Error(errText || `HTTP error ${response.status}`);
+            }
+
+            const data = await response.json();
+            const assistantContent = data.choices[0]?.message?.content || 'No response';
+            const responseModelId = data.model || model;
+
+            const aiMsg = {
+                id: generateUUID(),
+                threadId: state.currentThreadId,
+                role: 'assistant',
+                content: assistantContent,
+                model: responseModelId, 
+                createdAt: Date.now()
+            };
+            
+            await dbUtils.put('messages', aiMsg);
+            state.messages.push(aiMsg);
+            appendMessageToDOM(aiMsg);
+
+        } catch (error) {
+            console.error('Chat API Error:', error);
+            const sysMsg = {
+                id: generateUUID(),
+                threadId: state.currentThreadId,
+                role: 'system',
+                content: `Error: ${error.message}`,
+                createdAt: Date.now()
+            };
+            await dbUtils.put('messages', sysMsg);
+            state.messages.push(sysMsg);
+            appendMessageToDOM(sysMsg);
+        } finally {
+            state.isLoading = false;
+            updateSendButtonState();
+            DOM.typingIndicator.style.display = 'none';
+            DOM.userInput.focus();
+        }
+    }
+
+
+    // --- SETTINGS ---
+
+    function openSettings() {
+        DOM.apiKeyInput.value = state.apiKey;
+        DOM.saveStatus.textContent = '';
+        DOM.settingsModal.style.display = 'flex';
+        if (window.innerWidth <= 768) toggleSidebar();
+    }
+
+    function closeSettings() {
+        DOM.settingsModal.style.display = 'none';
+    }
+
+    async function saveSettings() {
+        const key = DOM.apiKeyInput.value.trim();
+        state.apiKey = key;
+        await dbUtils.put('settings', { id: 'apiKey', value: key });
+        updateApiStatusUI();
+        
+        DOM.saveStatus.textContent = 'API Key saved securely.';
+        
+        // Re-fetch the models specifically using the saved API key
+        await fetchModels();
+
+        setTimeout(() => { DOM.saveStatus.textContent = ''; }, 3000);
+    }
+
+    async function wipeAllData() {
+        if (!confirm('Are you ABSOLUTELY sure? This deletes ALL threads, messages, and settings.')) return;
+        
+        await dbUtils.clearAll();
+        
+        state.apiKey = '';
+        state.selectedModel = '';
+        state.threads = [];
+        state.messages = [];
+        state.currentThreadId = null;
+        
+        DOM.apiKeyInput.value = '';
+        updateApiStatusUI();
+        closeSettings();
+        
+        await createNewThread();
+    }
+
+    // --- START ---
+    window.onload = initApp;
+
+</script>
+</body>
+</html>
