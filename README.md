@@ -1,10 +1,10 @@
-#OpenRouter Modern Chat (Single-File PWA)
+# OpenRouter Modern Chat (Single-File PWA)
 
 A fully-featured, beautifully designed modern chat client for the OpenRouter API, built entirely in a single, zero-dependency HTML file.
 
 No build steps. No frameworks. No external CDNs. Just download, open in your browser, and start chatting with hundreds of LLMs.
 
-##🚀 Features
+## 🚀 Features
 
 Zero Dependencies: Built with pure Vanilla HTML, CSS, and JavaScript. Everything, including SVG icons, is embedded.
 
@@ -22,7 +22,7 @@ Mobile-First Dark UI: A highly responsive, touch-friendly interface inspired by 
 
 "Danger Zone" Data Wipe: A one-click option to completely purge all local storage, threads, and API keys from your device.
 
-##🛠️ How to Use
+## 🛠️ How to Use
 
 Because this app requires zero build tools, getting started takes seconds:
 
@@ -46,7 +46,7 @@ If your browser supports Progressive Web Apps (like Chrome, Edge, or Safari on i
 
 - The app will be installed with a custom icon and will run in an immersive, standalone window.
 
-##🔒 Security & Privacy
+## 🔒 Security & Privacy
 
 This application is completely stateless on the server side (because there is no server!).
 
@@ -54,7 +54,7 @@ Storage: All data (including your API key) is stored using the browser's native 
 
 Network: The only network requests made are directly to https://openrouter.ai/api/v1/ to fetch models and send/receive chat completions. See OpenRouter for their privacy policy.
 
-##💻 Tech Stack
+## 💻 Tech Stack
 
 - HTML5 / CSS3: Custom, responsive layout using Flexbox and CSS variables.
 
